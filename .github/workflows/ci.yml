@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  dbt-ci:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: md_user
+          POSTGRES_PASSWORD: md_password
+          POSTGRES_DB: md_data
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U md_user -d md_data"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: md_user
+      POSTGRES_PASSWORD: md_password
+      POSTGRES_DB: md_data
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install "dbt-postgres>=1.7,<1.10" "sqlfluff>=3.0"
+
+      - name: Lint dbt models (sqlfluff)
+        run: sqlfluff lint dbt/models
+
+      - name: Seed minimal raw fixture
+        run: |
+          PGPASSWORD=md_password psql -h localhost -U md_user -d md_data -v ON_ERROR_STOP=1 <<'SQL'
+          create schema if not exists raw;
+          create table if not exists raw.exchange_rates (
+              rate_date  date           not null,
+              char_code  text           not null,
+              num_code   text,
+              nominal    integer        not null,
+              name       text,
+              value      numeric(18, 6) not null,
+              loaded_at  timestamptz    not null default now(),
+              primary key (rate_date, char_code)
+          );
+          insert into raw.exchange_rates (rate_date, char_code, num_code, nominal, name, value) values
+              ('2026-06-16', 'EUR', '978', 1, 'Euro', 20.1579),
+              ('2026-06-18', 'EUR', '978', 1, 'Euro', 20.2029),
+              ('2026-06-16', 'USD', '840', 1, 'US Dollar', 17.3603),
+              ('2026-06-18', 'USD', '840', 1, 'US Dollar', 17.4208)
+          on conflict (rate_date, char_code) do nothing;
+          SQL
+
+      - name: dbt deps
+        working-directory: dbt
+        run: dbt deps --profiles-dir .
+
+      - name: dbt compile
+        working-directory: dbt
+        run: dbt compile --profiles-dir .
+
+      - name: dbt build (run models + run tests)
+        working-directory: dbt
+        run: dbt build --profiles-dir .
