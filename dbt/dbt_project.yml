@@ -1,0 +1,23 @@
+name: 'md_data_pipeline'
+version: '1.0.0'
+config-version: 2
+
+profile: 'md_data_pipeline'
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  md_data_pipeline:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: view
+    marts:
+      +materialized: table

@@ -1,0 +1,42 @@
+version: 2
+
+models:
+  - name: dim_currency
+    description: "Currency dimension: one row per currency code."
+    columns:
+      - name: char_code
+        description: "ISO alphabetic currency code (primary key)."
+        tests:
+          - not_null
+          - unique
+      - name: num_code
+        description: "ISO numeric currency code."
+      - name: currency_name
+        description: "Human-readable currency name."
+      - name: nominal
+        description: "Number of currency units the rate refers to."
+        tests:
+          - not_null
+
+  - name: fct_daily_rates
+    description: "Daily exchange-rate fact, grain: one row per date and currency."
+    columns:
+      - name: rate_date
+        description: "Date the rate is valid for."
+        tests:
+          - not_null
+      - name: char_code
+        description: "Currency code, foreign key to dim_currency."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_currency')
+              field: char_code
+      - name: rate
+        description: "Official rate in MDL for the given nominal."
+        tests:
+          - not_null
+          - positive_value
+    tests:
+      - unique:
+          column_name: "rate_date::text || '|' || char_code"

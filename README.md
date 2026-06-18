@@ -43,3 +43,28 @@ Verify the rows landed (in Adminer, or via psql):
 ```sql
 SELECT * FROM raw.exchange_rates ORDER BY char_code LIMIT 20;
 ```
+
+## Transformations (dbt)
+
+The `dbt/` project transforms `raw.exchange_rates` through
+`staging -> intermediate -> marts`, all materialized in the `analytics` schema.
+dbt reads the database connection from the same environment variables as the
+ingestion step.
+
+```bash
+# Isolated environment (recommended)
+python -m venv .venv
+.venv/Scripts/python -m pip install dbt-postgres   # Windows
+# source .venv/bin/activate                         # Linux/macOS
+
+# Load DB credentials, then build and test from the dbt/ directory
+cd dbt
+dbt run --profiles-dir .
+dbt test --profiles-dir .
+```
+
+Inspect the final mart:
+
+```sql
+SELECT * FROM analytics.fct_daily_rates ORDER BY char_code, rate_date LIMIT 20;
+```

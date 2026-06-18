@@ -1,0 +1,29 @@
+version: 2
+
+sources:
+  - name: raw
+    description: "Raw data landed directly from external sources."
+    schema: raw
+    tables:
+      - name: exchange_rates
+        description: "Daily official BNM exchange rates, loaded as-is."
+
+models:
+  - name: stg_exchange_rates
+    description: "Cleaned 1:1 view over raw.exchange_rates."
+    columns:
+      - name: rate_date
+        description: "Date the rate is valid for."
+        tests:
+          - not_null
+      - name: char_code
+        description: "ISO alphabetic currency code (e.g. EUR)."
+        tests:
+          - not_null
+      - name: rate
+        description: "Official rate in MDL for the given nominal."
+        tests:
+          - not_null
+    tests:
+      - unique:
+          column_name: "rate_date::text || '|' || char_code"
