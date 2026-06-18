@@ -94,7 +94,7 @@ services:
     command: webserver
     restart: unless-stopped
     ports:
-      - "8081:8080"
+      - "${AIRFLOW_WEB_PORT:-8081}:8080"
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
       interval: 30s

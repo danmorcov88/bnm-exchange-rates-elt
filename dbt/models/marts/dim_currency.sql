@@ -13,7 +13,7 @@ currencies as (
         currency_name,
         nominal
     from staged
-    order by char_code, rate_date desc
+    order by char_code asc, rate_date desc
 
 )
 
