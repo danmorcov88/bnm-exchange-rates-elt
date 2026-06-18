@@ -68,3 +68,33 @@ Inspect the final mart:
 ```sql
 SELECT * FROM analytics.fct_daily_rates ORDER BY char_code, rate_date LIMIT 20;
 ```
+
+## Orchestration (Airflow)
+
+Apache Airflow (LocalExecutor) orchestrates the pipeline as a single DAG,
+`md_pipeline`: `extract_and_load -> dbt_run -> dbt_test`, scheduled `@daily`.
+Airflow has its own metadata database, separate from the data warehouse. Inside
+the Docker network the tasks reach the data warehouse at `postgres:5432`.
+
+Bring up the full stack (Postgres, Adminer, Airflow):
+
+```bash
+docker compose up -d --build
+```
+
+Open the Airflow UI at http://localhost:8081 and log in with
+`AIRFLOW_ADMIN_USERNAME` / `AIRFLOW_ADMIN_PASSWORD` from your `.env`. Enable the
+`md_pipeline` DAG and press Trigger to run it; all three tasks should turn green.
+
+The DAG passes each run's logical date into ingestion (as `DD.MM.YYYY`), so
+backfilling a past day works and stays idempotent. You can also run a single
+date end to end from the command line:
+
+```bash
+docker compose exec airflow-scheduler airflow dags test md_pipeline 2026-06-18
+```
+
+| Service | URL | Notes |
+|---|---|---|
+| Airflow UI | http://localhost:8081 | DAG runs and logs |
+| Adminer | http://localhost:8080 | Browse `raw` and `analytics` schemas |
