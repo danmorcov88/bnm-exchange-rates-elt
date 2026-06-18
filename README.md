@@ -1,4 +1,4 @@
-# MD Data Pipeline
+# BNM Exchange Rates — ELT Pipeline
 
 ![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
@@ -107,6 +107,21 @@ python -m venv .venv
 .venv/Scripts/python -m pip install dbt-postgres    # Windows
 cd dbt && dbt run --profiles-dir . && dbt test --profiles-dir .
 ```
+
+## Pipeline in action
+
+The Airflow DAG running on its daily schedule, all tasks green across runs:
+
+![Airflow DAG runs](docs/airflow_dag_grid.png)
+
+Task dependencies, `extract_and_load -> dbt_run -> dbt_test`:
+
+![Airflow DAG graph](docs/airflow_dag_graph.png)
+
+The resulting `fct_daily_rates` fact in the `analytics` schema, with the derived
+daily delta and percentage change:
+
+![fct_daily_rates in Adminer](docs/adminer_mart.png)
 
 ## Data model
 
