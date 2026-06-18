@@ -1,6 +1,6 @@
 # BNM Exchange Rates — ELT Pipeline
 
-![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)
+[![CI](https://github.com/danmorcov88/bnm-exchange-rates-elt/actions/workflows/ci.yml/badge.svg)](https://github.com/danmorcov88/bnm-exchange-rates-elt/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![dbt](https://img.shields.io/badge/dbt-postgres-FF694B?logo=dbt&logoColor=white)
