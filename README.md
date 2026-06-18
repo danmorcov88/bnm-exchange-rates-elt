@@ -72,6 +72,9 @@ Then build and start the full stack (Postgres, Adminer, Airflow):
 docker compose up -d --build
 ```
 
+With `make` available, the common tasks are wrapped in the [Makefile](Makefile):
+`make up`, `make test`, `make backfill DATE=2026-06-17`, `make down`.
+
 Then open the UIs:
 
 | Service | URL | Login |
@@ -155,11 +158,30 @@ enforces `rate > 0`.
 - Continuous integration: GitHub Actions lints the SQL and builds and tests the
   models against an ephemeral Postgres on every push.
 
+## Limitations and next steps
+
+This is a focused portfolio project, so some deliberate scope boundaries remain:
+
+- Airflow runs with the `LocalExecutor` on a single node, which is fine here but
+  not a production high-availability setup (no Celery or Kubernetes executor).
+- dbt models are rebuilt in full on each run. At this data volume that is cheap;
+  incremental models would be the next step at larger scale.
+- Data quality is covered by dbt tests only. A dedicated framework such as Great
+  Expectations or Soda would add distribution and freshness checks.
+- There is no alerting or external monitoring beyond Airflow's task retries.
+- A single source (BNM) is modeled. The schema is ready to extend with more
+  sources or a second data domain.
+
+Natural next steps: incremental marts, failure alerting, a BI layer (for example
+Metabase) over the marts, and a cloud deployment.
+
 ## Project structure
 
 ```
 bnm-exchange-rates-elt/
 |-- docker-compose.yml         # Postgres, Adminer, Airflow (web + scheduler + metadata DB)
+|-- Makefile                   # Shortcuts: make up / test / backfill
+|-- LICENSE                    # MIT
 |-- .sqlfluff                  # SQL lint config (postgres dialect)
 |-- ingestion/
 |   |-- extract_bnm.py         # Fetch and parse the BNM XML
@@ -180,3 +202,7 @@ bnm-exchange-rates-elt/
 |-- .github/workflows/ci.yml   # Lint + dbt compile/build
 `-- docs/                      # Architecture diagram, mermaid source, overview
 ```
+
+## License
+
+Released under the MIT License. See [LICENSE](LICENSE).
