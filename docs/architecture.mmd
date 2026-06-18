@@ -1,0 +1,34 @@
+flowchart TB
+    subgraph ORCH["Apache Airflow — daily DAG (md_pipeline)"]
+        direction LR
+        T1["extract_and_load"] --> T2["dbt_run"] --> T3["dbt_test"]
+    end
+
+    A["BNM public XML API"] -->|"requests + xml.etree"| B["extract_bnm.py"]
+    B --> C["load_raw.py"]
+    C -->|"ON CONFLICT upsert"| D[("raw.exchange_rates")]
+
+    subgraph TR["dbt models — analytics schema"]
+        direction TB
+        E["staging<br/>stg_exchange_rates"] --> F["intermediate<br/>int_rates_enriched"]
+        F --> G["mart<br/>dim_currency"]
+        F --> H["mart<br/>fct_daily_rates"]
+    end
+
+    D --> E
+    G --> Q["Adminer / SQL"]
+    H --> Q
+
+    T1 -.->|runs| B
+    T2 -.->|runs| E
+    T3 -.->|validates| H
+
+    classDef src fill:#fde2e2,stroke:#c0392b,color:#111;
+    classDef py fill:#e7f0fd,stroke:#2c6cdf,color:#111;
+    classDef raw fill:#eadcff,stroke:#7c3aed,color:#111;
+    classDef dbt fill:#ffe9d6,stroke:#e8731f,color:#111;
+    class A src;
+    class B,C py;
+    class D raw;
+    class E,F,G,H dbt;
+    class Q raw;

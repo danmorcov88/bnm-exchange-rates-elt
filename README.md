@@ -16,24 +16,13 @@ portfolio project: public data, isolated containers, no external infrastructure.
 
 ## Architecture
 
-The architecture diagram is also available at `docs/architecture.png`.
+![Architecture diagram](docs/architecture.png)
 
-```mermaid
-flowchart TD
-    A[BNM public XML API] -->|requests + xml.etree| B[extract_bnm.py]
-    B --> C[load_raw.py]
-    C -->|ON CONFLICT upsert| D[(Postgres: raw.exchange_rates)]
-    D --> E[dbt staging: stg_exchange_rates]
-    E --> F[dbt intermediate: int_rates_enriched]
-    F --> G[dbt marts: dim_currency + fct_daily_rates]
-    G --> H[(analytics schema)]
-    H --> I[Adminer / SQL]
-
-    subgraph Orchestration [Airflow DAG: md_pipeline, daily]
-        direction LR
-        T1[extract_and_load] --> T2[dbt_run] --> T3[dbt_test]
-    end
-```
+The pipeline extracts daily rates from the BNM API, lands them in the `raw`
+schema, transforms them through dbt staging, intermediate, and mart layers in the
+`analytics` schema, and exposes the results for querying. An Airflow DAG runs the
+three steps in order on a daily schedule. The mermaid source is in
+`docs/architecture.mmd`.
 
 ## Tech stack
 
@@ -52,14 +41,34 @@ flowchart TD
 Prerequisites: Docker Desktop (Compose v2). No local Python or Postgres required
 to run the stack.
 
+Create a `.env` file in the project root:
+
 ```bash
-# 1. Create your environment file from the template
-cp .env.example .env
+# Data warehouse
+POSTGRES_USER=md_user
+POSTGRES_PASSWORD=md_password
+POSTGRES_DB=md_data
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5433
 
-# 2. Generate an Airflow Fernet key and paste it into AIRFLOW_FERNET_KEY in .env
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# Airflow metadata database (separate from the warehouse)
+AIRFLOW_DB_USER=airflow
+AIRFLOW_DB_PASSWORD=airflow
+AIRFLOW_DB_NAME=airflow
 
-# 3. Build and start the full stack (Postgres, Adminer, Airflow)
+# Airflow runtime
+AIRFLOW_UID=50000
+AIRFLOW_WEB_PORT=8081
+AIRFLOW_ADMIN_USERNAME=admin
+AIRFLOW_ADMIN_PASSWORD=admin
+# Generate with:
+#   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+AIRFLOW_FERNET_KEY=
+```
+
+Then build and start the full stack (Postgres, Adminer, Airflow):
+
+```bash
 docker compose up -d --build
 ```
 
@@ -136,7 +145,6 @@ enforces `rate > 0`.
 ```
 bnm-exchange-rates-elt/
 |-- docker-compose.yml         # Postgres, Adminer, Airflow (web + scheduler + metadata DB)
-|-- .env.example               # Configuration template (no secrets committed)
 |-- .sqlfluff                  # SQL lint config (postgres dialect)
 |-- ingestion/
 |   |-- extract_bnm.py         # Fetch and parse the BNM XML
@@ -155,5 +163,5 @@ bnm-exchange-rates-elt/
 |   `-- dags/
 |       `-- md_pipeline_dag.py # extract_and_load -> dbt_run -> dbt_test
 |-- .github/workflows/ci.yml   # Lint + dbt compile/build
-`-- docs/                      # Architecture diagram and screenshots
+`-- docs/                      # Architecture diagram, mermaid source, overview
 ```
